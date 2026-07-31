@@ -6,6 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "progressive-overload",
+    "plugins": ["expo-router"],
     "ios": {
       "supportsTablet": true
     },
