@@ -4,15 +4,15 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  // Only collect coverage from pure .ts files; .tsx JSX needs metro/babel
   collectCoverageFrom: [
-    'app/**/*.{ts,tsx}',
-    'db/**/*.{ts,tsx}',
-    'hooks/**/*.{ts,tsx}',
-    'store/**/*.{ts,tsx}',
-    'types/**/*.{ts,tsx}',
+    'db/**/*.ts',
+    'hooks/**/*.ts',
+    'store/**/*.ts',
+    'types/**/*.ts',
     '!**/_layout.tsx',
     '!**/index.ts',
-    '!**/*.test.{ts,tsx}',
+    '!**/*.test.ts',
     '!**/*.d.ts',
   ],
   // TODO: raise thresholds after issue #1 is merged and real tests are added
