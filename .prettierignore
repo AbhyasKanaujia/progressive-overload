@@ -1,0 +1,6 @@
+node_modules/
+.expo/
+coverage/
+*.lock
+scripts/
+dev_docs/
