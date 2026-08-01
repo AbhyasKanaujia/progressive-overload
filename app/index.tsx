@@ -10,6 +10,9 @@ export default function HomeScreen() {
       <Link href="/workouts" style={styles.link}>
         Go to Workouts
       </Link>
+      <Link href="/exercises" style={styles.link}>
+        Exercise Library
+      </Link>
     </View>
   );
 }

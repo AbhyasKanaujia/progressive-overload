@@ -95,6 +95,15 @@ describe('library CRUD', () => {
       const deleted = await library.getExerciseById(db, id);
       expect(deleted).toBeNull();
     });
+
+    it('retrieves exercises with movement pattern', async () => {
+      await library.createExercise(db, 'Ex1', patternId, 'A', 'B', 'Beginner');
+      const exercises = await library.getExercisesWithMovementPattern(db);
+      const found = exercises.find((e) => e.name === 'Ex1');
+      expect(found).toBeDefined();
+      expect(found?.movementPatternName).toBe('Vertical Push');
+      expect(found?.category).toBe('Push');
+    });
   });
 
   describe('exercise alternatives', () => {
@@ -134,6 +143,14 @@ describe('library CRUD', () => {
       await library.deleteExerciseAlternative(db, ex1, ex2);
       const alternatives = await library.getExerciseAlternatives(db, ex1);
       expect(alternatives).toHaveLength(0);
+    });
+
+    it('retrieves alternatives with movement pattern', async () => {
+      await library.createExerciseAlternative(db, ex1, ex2);
+      const alternatives = await library.getExerciseAlternativesWithPattern(db, ex1);
+      expect(alternatives).toHaveLength(1);
+      expect(alternatives[0].name).toBe('DB Bench');
+      expect(alternatives[0].movementPatternName).toBe('Horizontal Push');
     });
   });
 });
