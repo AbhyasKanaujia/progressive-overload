@@ -1,0 +1,121 @@
+import { getDatabase, resetDatabase } from './init';
+import * as templates from './templates';
+import * as library from './library';
+
+jest.mock('expo-sqlite');
+
+describe('templates CRUD', () => {
+  let db: Awaited<ReturnType<typeof getDatabase>>;
+  let programId: number;
+  let exerciseId: number;
+
+  beforeEach(async () => {
+    resetDatabase();
+    db = await getDatabase();
+    programId = await templates.createProgram(db, 'Test Program', 'A test program');
+    const patternId = await library.createMovementPattern(db, 'Push', 'Push');
+    exerciseId = await library.createExercise(
+      db,
+      'Test Bench Press',
+      patternId,
+      'Chest',
+      'Barbell',
+      'Intermediate'
+    );
+  });
+
+  describe('programs', () => {
+    it('creates and retrieves a program', async () => {
+      const id = await templates.createProgram(db, 'New Program', 'Description');
+      expect(id).toBeGreaterThan(0);
+
+      const program = await templates.getProgramById(db, id);
+      expect(program).toMatchObject({ name: 'New Program', description: 'Description' });
+      expect(program?.createdAt).toBeTruthy();
+    });
+
+    it('lists programs', async () => {
+      await templates.createProgram(db, 'P1');
+      await templates.createProgram(db, 'P2');
+      const programs = await templates.getPrograms(db);
+      expect(programs.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('updates a program', async () => {
+      await templates.updateProgram(db, programId, 'Updated', 'New desc');
+      const updated = await templates.getProgramById(db, programId);
+      expect(updated).toMatchObject({ name: 'Updated', description: 'New desc' });
+    });
+
+    it('deletes a program', async () => {
+      await templates.deleteProgram(db, programId);
+      const deleted = await templates.getProgramById(db, programId);
+      expect(deleted).toBeNull();
+    });
+  });
+
+  describe('workout templates', () => {
+    it('creates and retrieves a workout template', async () => {
+      const id = await templates.createWorkoutTemplate(db, programId, 'Push Day', 1);
+      expect(id).toBeGreaterThan(0);
+
+      const wt = await templates.getWorkoutTemplateById(db, id);
+      expect(wt).toMatchObject({ name: 'Push Day', orderIndex: 1 });
+    });
+
+    it('lists templates by program', async () => {
+      await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      await templates.createWorkoutTemplate(db, programId, 'B', 1);
+      const wts = await templates.getWorkoutTemplates(db, programId);
+      expect(wts.length).toBe(2);
+    });
+
+    it('cascades delete with program', async () => {
+      const wtId = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      await templates.deleteProgram(db, programId);
+      const deleted = await templates.getWorkoutTemplateById(db, wtId);
+      expect(deleted).toBeNull();
+    });
+  });
+
+  describe('template exercises', () => {
+    let templateId: number;
+
+    beforeEach(async () => {
+      templateId = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
+    });
+
+    it('creates and retrieves a template exercise', async () => {
+      const id = await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      expect(id).toBeGreaterThan(0);
+
+      const te = await templates.getTemplateExerciseById(db, id);
+      expect(te).toMatchObject({
+        workoutTemplateId: templateId,
+        exerciseId,
+        targetSets: 3,
+        targetRepsMin: 8,
+        targetRepsMax: 12,
+      });
+    });
+
+    it('cascades delete with workout template', async () => {
+      const teId = await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      await templates.deleteWorkoutTemplate(db, templateId);
+      const deleted = await templates.getTemplateExerciseById(db, teId);
+      expect(deleted).toBeNull();
+    });
+
+    it('updates a template exercise', async () => {
+      const id = await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      await templates.updateTemplateExercise(db, id, 1, 4, 6, 10);
+      const updated = await templates.getTemplateExerciseById(db, id);
+      expect(updated).toMatchObject({
+        orderIndex: 1,
+        targetSets: 4,
+        targetRepsMin: 6,
+        targetRepsMax: 10,
+      });
+    });
+  });
+});
