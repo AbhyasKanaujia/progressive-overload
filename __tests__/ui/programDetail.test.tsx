@@ -4,10 +4,12 @@ import { Alert } from 'react-native';
 import ProgramDetailScreen from '../../app/programs/[id]';
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ id: '1' }),
+  useFocusEffect: (cb: () => void) => cb(),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -17,6 +19,7 @@ jest.mock('react-native-safe-area-context', () => ({
 const mockGetProgramById = jest.fn();
 const mockGetWorkoutTemplates = jest.fn();
 const mockDeleteProgram = jest.fn();
+const mockCreateWorkoutTemplate = jest.fn();
 const mockSetUserSetting = jest.fn();
 
 jest.mock('../../db/init', () => ({
@@ -27,6 +30,7 @@ jest.mock('../../db/templates', () => ({
   getProgramById: (...args: unknown[]) => mockGetProgramById(...args),
   getWorkoutTemplates: (...args: unknown[]) => mockGetWorkoutTemplates(...args),
   deleteProgram: (...args: unknown[]) => mockDeleteProgram(...args),
+  createWorkoutTemplate: (...args: unknown[]) => mockCreateWorkoutTemplate(...args),
 }));
 
 jest.mock('../../db/settings', () => ({
@@ -165,5 +169,37 @@ describe('ProgramDetailScreen', () => {
     });
 
     alertSpy.mockRestore();
+  });
+
+  it('shows + New Template button and reveals inline form on tap', async () => {
+    const { getByText, queryByText } = await render(<ProgramDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByText('+ New Template')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('+ New Template'));
+
+    await waitFor(() => {
+      expect(getByText('Save')).toBeTruthy();
+      expect(getByText('Cancel')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('Cancel'));
+
+    await waitFor(() => {
+      expect(queryByText('Save')).toBeNull();
+    });
+  });
+
+  it('navigates to template detail on template tap', async () => {
+    const { getByText } = await render(<ProgramDetailScreen />);
+
+    await waitFor(() => {
+      expect(getByText('Push Day')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('Push Day'));
+    expect(mockPush).toHaveBeenCalledWith('/templates/10');
   });
 });

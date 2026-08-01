@@ -166,3 +166,25 @@ export async function updateTemplateExercise(
 export async function deleteTemplateExercise(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('DELETE FROM template_exercises WHERE id = ?', id);
 }
+
+export interface TemplateExerciseWithDetails extends TemplateExercise {
+  exerciseName: string;
+  equipment: string;
+}
+
+export async function getTemplateExercisesWithDetails(
+  db: SQLiteDatabase,
+  workoutTemplateId: number
+): Promise<TemplateExerciseWithDetails[]> {
+  return db.getAllAsync<TemplateExerciseWithDetails>(
+    `SELECT te.id, te.workout_template_id AS workoutTemplateId, te.exercise_id AS exerciseId,
+            te.order_index AS orderIndex, te.target_sets AS targetSets,
+            te.target_reps_min AS targetRepsMin, te.target_reps_max AS targetRepsMax,
+            e.name AS exerciseName, e.equipment
+     FROM template_exercises te
+     JOIN exercises e ON te.exercise_id = e.id
+     WHERE te.workout_template_id = ?
+     ORDER BY te.order_index`,
+    workoutTemplateId
+  );
+}

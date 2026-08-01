@@ -11,6 +11,8 @@ export default function RootLayout() {
         <Stack.Screen name="exercises/[id]" />
         <Stack.Screen name="programs/create" />
         <Stack.Screen name="programs/[id]" />
+        <Stack.Screen name="templates/[id]" />
+        <Stack.Screen name="templates/addExercise" />
       </Stack>
     </SafeAreaProvider>
   );
