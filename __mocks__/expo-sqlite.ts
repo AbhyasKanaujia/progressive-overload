@@ -1,4 +1,13 @@
-const Database = require('better-sqlite3');
+import initSqlJs from 'sql.js/dist/sql-asm.js';
+
+let SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
+
+async function getSQL() {
+  if (!SQL) {
+    SQL = await initSqlJs();
+  }
+  return SQL;
+}
 
 interface MockDatabase {
   execAsync(source: string): Promise<void>;
@@ -15,10 +24,32 @@ function normalizeParams(params: any[]): any[] {
   return params;
 }
 
-function createMockDb(db: any): MockDatabase {
+function getLastInsertRowId(db: any): number {
+  const stmt = db.prepare('SELECT last_insert_rowid() as id');
+  stmt.step();
+  const row = stmt.getAsObject() as Record<string, any>;
+  stmt.free();
+  return Number(row.id ?? 0);
+}
+
+function getChanges(db: any): number {
+  const stmt = db.prepare('SELECT changes() as c');
+  stmt.step();
+  const row = stmt.getAsObject() as Record<string, any>;
+  stmt.free();
+  return Number(row.c ?? 0);
+}
+
+export async function openDatabaseAsync(_name: string): Promise<MockDatabase> {
+  const SQL = await getSQL();
+  const db = new SQL.Database();
+
   return {
     execAsync(source: string): Promise<void> {
-      return Promise.resolve(db.exec(source));
+      // sql.js exec can run multiple statements; it returns results for SELECTs
+      // but we ignore them since execAsync's contract is Promise<void>
+      db.exec(source);
+      return Promise.resolve();
     },
 
     runAsync(
@@ -26,27 +57,36 @@ function createMockDb(db: any): MockDatabase {
       ...params: any[]
     ): Promise<{ lastInsertRowId: number; changes: number }> {
       const normalized = normalizeParams(params);
-      const stmt = db.prepare(source);
-      const result = stmt.run(...normalized);
+      db.run(source, normalized);
       return Promise.resolve({
-        // Defensive: better-sqlite3 uses lastInsertRowid (lowercase).
-        // Map to expo-sqlite's lastInsertRowId (camelCase).
-        lastInsertRowId: Number(result?.lastInsertRowid ?? result?.lastInsertRowId ?? 0),
-        changes: result.changes,
+        lastInsertRowId: getLastInsertRowId(db),
+        changes: getChanges(db),
       });
     },
 
     getFirstAsync<T>(source: string, ...params: any[]): Promise<T | null> {
       const normalized = normalizeParams(params);
       const stmt = db.prepare(source);
-      const row = stmt.get(...normalized);
-      return Promise.resolve(row ?? null);
+      stmt.bind(normalized);
+      const hasRow = stmt.step();
+      if (!hasRow) {
+        stmt.free();
+        return Promise.resolve(null);
+      }
+      const row = stmt.getAsObject() as T;
+      stmt.free();
+      return Promise.resolve(row);
     },
 
     getAllAsync<T>(source: string, ...params: any[]): Promise<T[]> {
       const normalized = normalizeParams(params);
       const stmt = db.prepare(source);
-      const rows = stmt.all(...normalized);
+      stmt.bind(normalized);
+      const rows: T[] = [];
+      while (stmt.step()) {
+        rows.push(stmt.getAsObject() as T);
+      }
+      stmt.free();
       return Promise.resolve(rows);
     },
 
@@ -61,9 +101,4 @@ function createMockDb(db: any): MockDatabase {
       }
     },
   };
-}
-
-export async function openDatabaseAsync(_name: string): Promise<MockDatabase> {
-  const db = new Database(':memory:');
-  return createMockDb(db);
 }
