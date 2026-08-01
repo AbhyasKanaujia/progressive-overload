@@ -19,7 +19,7 @@ export function resetDatabase(): void {
 
 // ─── Schema Migrations ───
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 type Migration = {
   version: number;
@@ -166,6 +166,18 @@ const MIGRATIONS: Migration[] = [
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (session_exercise_id) REFERENCES session_exercises(id) ON DELETE CASCADE
         );
+      `);
+    },
+  },
+  {
+    version: 2,
+    name: 'Add user settings table',
+    up: async (database) => {
+      await database.execAsync(`
+        CREATE TABLE IF NOT EXISTS user_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
       `);
     },
   },

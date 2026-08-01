@@ -23,6 +23,7 @@ describe('database initialization', () => {
     expect(names).toContain('session_exercises');
     expect(names).toContain('set_logs');
     expect(names).toContain('schema_migrations');
+    expect(names).toContain('user_settings');
   });
 
   it('seeds movement patterns on first open', async () => {
@@ -56,7 +57,7 @@ describe('database initialization', () => {
     const row = await db.getFirstAsync<{ version: number }>(
       'SELECT version FROM schema_migrations WHERE id = 1'
     );
-    expect(row?.version).toBe(1);
+    expect(row?.version).toBe(2);
   });
 
   it('does not re-seed on subsequent opens', async () => {

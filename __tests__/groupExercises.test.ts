@@ -1,5 +1,5 @@
-import { groupExercisesByCategory } from './groupExercises';
-import type { ExerciseWithPattern } from '../../db/library';
+import { groupExercisesByCategory } from '../app/exercises/groupExercises';
+import type { ExerciseWithPattern } from '../db/library';
 
 function makeExercise(overrides: Partial<ExerciseWithPattern>): ExerciseWithPattern {
   return {
