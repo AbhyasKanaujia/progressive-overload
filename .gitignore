@@ -38,6 +38,7 @@ yarn-error.*
 
 # testing
 coverage/
+.playwright-cli/
 
 # generated native folders
 /ios

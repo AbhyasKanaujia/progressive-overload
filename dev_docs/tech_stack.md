@@ -2,6 +2,7 @@
 
 ## Runtime
 - Expo (managed workflow), React Native 0.81.5, React 19.1.0
+- **Mobile only:** iOS and Android. Web is not supported because `expo-sqlite` is a native module with no web backend.
 
 ## Language
 - TypeScript
