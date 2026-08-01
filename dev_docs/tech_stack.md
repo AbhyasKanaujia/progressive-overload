@@ -17,7 +17,7 @@
 - `expo-sqlite` for local relational storage
 
 ## Styling
-- React Native `StyleSheet` (or NativeWind if decided later)
+- React Native `StyleSheet`
 
 ## Key libraries
 - `@expo/vector-icons` for icons
@@ -28,12 +28,15 @@
 
 ## Rationale
 - Local-first matches the domain: historical workouts, progression history, and offline gym use.
-- SQLite maps cleanly to the `Program → Split → Workout → Exercise → Set` hierarchy.
-- Expo minimizes native build friction while keeping web/iOS/Android possible.
+- SQLite maps cleanly to the relational domain. The schema separates three independent layers:
+  1. **Global exercise library** — movement patterns, exercises, alternatives
+  2. **Program templates** — what you plan to do
+  3. **Workout sessions** — what you actually did
+- This decoupling means deleting a program never destroys workout history, exercises are reusable across programs, and PRs/analytics are global per exercise.
+- Expo minimizes native build friction while keeping iOS/Android possible.
 - Zustand is minimal; no heavy boilerplate for a single-user app.
 - Core progression logic is pure and easily unit-tested.
 
 ## Open decisions
-- Web target?
 - NativeWind vs plain StyleSheet?
 - Cloud sync / accounts?
