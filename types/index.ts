@@ -1,33 +1,45 @@
-export interface Program {
-  id: number;
-  name: string;
-  description?: string;
-}
+// Global Exercise Library
 
-export interface Split {
+export interface MovementPattern {
   id: number;
-  programId: number;
   name: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
-}
-
-export interface Workout {
-  id: number;
-  splitId: number;
-  name: string;
+  parentId: number | null;
+  category: string;
 }
 
 export interface Exercise {
   id: number;
   name: string;
-  movementPattern: string;
+  movementPatternId: number;
   muscleGroups: string;
   equipment: string;
+  difficulty: string;
 }
 
-export interface WorkoutExercise {
+export interface ExerciseAlternative {
+  exerciseId: number;
+  alternativeExerciseId: number;
+}
+
+// Program Templates
+
+export interface Program {
   id: number;
-  workoutId: number;
+  name: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface WorkoutTemplate {
+  id: number;
+  programId: number;
+  name: string;
+  orderIndex: number;
+}
+
+export interface TemplateExercise {
+  id: number;
+  workoutTemplateId: number;
   exerciseId: number;
   orderIndex: number;
   targetSets: number;
@@ -35,12 +47,33 @@ export interface WorkoutExercise {
   targetRepsMax: number;
 }
 
+// Workout Sessions
+
+export interface WorkoutSession {
+  id: number;
+  workoutTemplateId: number | null;
+  programId: number | null;
+  performedAt: string;
+  notes: string | null;
+  completed: boolean;
+}
+
+export interface SessionExercise {
+  id: number;
+  workoutSessionId: number;
+  exerciseId: number;
+  orderIndex: number;
+}
+
 export interface SetLog {
   id: number;
-  workoutExerciseId: number;
+  sessionExerciseId: number;
   setNumber: number;
-  weight: number;
-  reps: number;
-  rir: number;
-  completedAt: string;
+  targetWeight: number | null;
+  targetReps: number | null;
+  performedWeight: number | null;
+  performedReps: number | null;
+  rir: number | null;
+  completed: boolean;
+  createdAt: string;
 }
