@@ -11,10 +11,7 @@ async function getSQL() {
 
 interface MockDatabase {
   execAsync(source: string): Promise<void>;
-  runAsync(
-    source: string,
-    ...params: any[]
-  ): Promise<{ lastInsertRowId: number; changes: number }>;
+  runAsync(source: string, ...params: any[]): Promise<{ lastInsertRowId: number; changes: number }>;
   getFirstAsync<T>(source: string, ...params: any[]): Promise<T | null>;
   getAllAsync<T>(source: string, ...params: any[]): Promise<T[]>;
   withTransactionAsync(task: () => Promise<void>): Promise<void>;
