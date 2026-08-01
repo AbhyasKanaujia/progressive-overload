@@ -9,7 +9,7 @@ export async function createProgram(
   description?: string
 ): Promise<number> {
   const result = await db.runAsync(
-    "INSERT INTO programs (name, description, created_at) VALUES (?, ?, datetime('now'))",
+    'INSERT INTO programs (name, description) VALUES (?, ?)',
     name,
     description ?? null
   );

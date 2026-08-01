@@ -1,6 +1,37 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 import { WorkoutSession, SessionExercise, SetLog } from '../types';
 
+// SQLite has no native boolean; we store INTEGER (0/1) and coerce on read.
+function coerceBool(value: unknown): boolean {
+  return value === 1 || value === true;
+}
+
+function mapSession(row: Record<string, unknown>): WorkoutSession {
+  return {
+    id: row.id as number,
+    workoutTemplateId: row.workoutTemplateId as number | null,
+    programId: row.programId as number | null,
+    performedAt: row.performedAt as string,
+    notes: row.notes as string | null,
+    completed: coerceBool(row.completed),
+  };
+}
+
+function mapSetLog(row: Record<string, unknown>): SetLog {
+  return {
+    id: row.id as number,
+    sessionExerciseId: row.sessionExerciseId as number,
+    setNumber: row.setNumber as number,
+    targetWeight: row.targetWeight as number | null,
+    targetReps: row.targetReps as number | null,
+    performedWeight: row.performedWeight as number | null,
+    performedReps: row.performedReps as number | null,
+    rir: row.rir as number | null,
+    completed: coerceBool(row.completed),
+    createdAt: row.createdAt as string,
+  };
+}
+
 // Workout Sessions
 
 export async function createWorkoutSession(
@@ -16,7 +47,7 @@ export async function createWorkoutSession(
   const result = await db.runAsync(
     `INSERT INTO workout_sessions
      (workout_template_id, program_id, performed_at, notes, completed)
-     VALUES (?, ?, COALESCE(?, datetime('now')), ?, ?)`,
+     VALUES (?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?, ?)`,
     params.workoutTemplateId ?? null,
     params.programId ?? null,
     params.performedAt ?? null,
@@ -27,19 +58,21 @@ export async function createWorkoutSession(
 }
 
 export async function getWorkoutSessions(db: SQLiteDatabase): Promise<WorkoutSession[]> {
-  return db.getAllAsync<WorkoutSession>(
+  const rows = await db.getAllAsync<Record<string, unknown>>(
     'SELECT id, workout_template_id AS workoutTemplateId, program_id AS programId, performed_at AS performedAt, notes, completed FROM workout_sessions ORDER BY performed_at DESC'
   );
+  return rows.map(mapSession);
 }
 
 export async function getWorkoutSessionById(
   db: SQLiteDatabase,
   id: number
 ): Promise<WorkoutSession | null> {
-  return db.getFirstAsync<WorkoutSession>(
+  const row = await db.getFirstAsync<Record<string, unknown>>(
     'SELECT id, workout_template_id AS workoutTemplateId, program_id AS programId, performed_at AS performedAt, notes, completed FROM workout_sessions WHERE id = ?',
     id
   );
+  return row ? mapSession(row) : null;
 }
 
 export async function updateWorkoutSession(
@@ -151,17 +184,19 @@ export async function createSetLog(
 }
 
 export async function getSetLogs(db: SQLiteDatabase, sessionExerciseId: number): Promise<SetLog[]> {
-  return db.getAllAsync<SetLog>(
+  const rows = await db.getAllAsync<Record<string, unknown>>(
     'SELECT id, session_exercise_id AS sessionExerciseId, set_number AS setNumber, target_weight AS targetWeight, target_reps AS targetReps, performed_weight AS performedWeight, performed_reps AS performedReps, rir, completed, created_at AS createdAt FROM set_logs WHERE session_exercise_id = ? ORDER BY set_number',
     sessionExerciseId
   );
+  return rows.map(mapSetLog);
 }
 
 export async function getSetLogById(db: SQLiteDatabase, id: number): Promise<SetLog | null> {
-  return db.getFirstAsync<SetLog>(
+  const row = await db.getFirstAsync<Record<string, unknown>>(
     'SELECT id, session_exercise_id AS sessionExerciseId, set_number AS setNumber, target_weight AS targetWeight, target_reps AS targetReps, performed_weight AS performedWeight, performed_reps AS performedReps, rir, completed, created_at AS createdAt FROM set_logs WHERE id = ?',
     id
   );
+  return row ? mapSetLog(row) : null;
 }
 
 export async function updateSetLog(

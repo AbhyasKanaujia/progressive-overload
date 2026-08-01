@@ -29,7 +29,9 @@ function createMockDb(db: any): MockDatabase {
       const stmt = db.prepare(source);
       const result = stmt.run(...normalized);
       return Promise.resolve({
-        lastInsertRowId: Number(result.lastInsertRowid),
+        // Defensive: better-sqlite3 uses lastInsertRowid (lowercase).
+        // Map to expo-sqlite's lastInsertRowId (camelCase).
+        lastInsertRowId: Number(result?.lastInsertRowid ?? result?.lastInsertRowId ?? 0),
         changes: result.changes,
       });
     },

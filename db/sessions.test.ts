@@ -42,7 +42,7 @@ describe('sessions CRUD', () => {
         workoutTemplateId: templateId,
         programId,
         notes: 'Felt good',
-        completed: 1,
+        completed: true,
       });
       expect(session?.performedAt).toBeTruthy();
     });
@@ -58,7 +58,7 @@ describe('sessions CRUD', () => {
       const id = await sessions.createWorkoutSession(db, { notes: 'Old' });
       await sessions.updateWorkoutSession(db, id, { notes: 'New', completed: true });
       const updated = await sessions.getWorkoutSessionById(db, id);
-      expect(updated).toMatchObject({ notes: 'New', completed: 1 });
+      expect(updated).toMatchObject({ notes: 'New', completed: true });
     });
 
     it('deletes a session', async () => {
@@ -130,7 +130,7 @@ describe('sessions CRUD', () => {
         performedWeight: 60,
         performedReps: 10,
         rir: 2,
-        completed: 1,
+        completed: true,
       });
       expect(log?.createdAt).toBeTruthy();
     });
@@ -162,7 +162,7 @@ describe('sessions CRUD', () => {
         performedWeight: 55,
         performedReps: 9,
         rir: 2,
-        completed: 1,
+        completed: true,
       });
     });
 
