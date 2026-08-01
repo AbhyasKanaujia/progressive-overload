@@ -1,10 +1,23 @@
-import { useEffect, useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Colors, Spacing, Typography } from '../../constants/theme';
 import { getDatabase } from '../../db/init';
-import { deleteProgram, getProgramById, getWorkoutTemplates } from '../../db/templates';
+import {
+  createWorkoutTemplate,
+  deleteProgram,
+  getProgramById,
+  getWorkoutTemplates,
+} from '../../db/templates';
 import { setUserSetting } from '../../db/settings';
 import { useDatabase } from '../../hooks/useDatabase';
 import { useAppStore } from '../../store';
@@ -20,25 +33,53 @@ export default function ProgramDetailScreen() {
 
   const [program, setProgram] = useState<Program | null>(null);
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   const isActive = activeProgramId === programId;
 
-  useEffect(() => {
-    if (!ready || Number.isNaN(programId)) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!ready || Number.isNaN(programId)) return;
 
-    getDatabase()
-      .then(async (db) => {
-        const prog = await getProgramById(db, programId);
-        if (!prog) return;
-        setProgram(prog);
+      let cancelled = false;
 
-        const wts = await getWorkoutTemplates(db, programId);
-        setTemplates(wts);
-      })
-      .catch(() => {
-        // Silently fail
-      });
-  }, [ready, programId]);
+      getDatabase()
+        .then(async (db) => {
+          const prog = await getProgramById(db, programId);
+          if (cancelled) return;
+          if (!prog) {
+            setProgram(null);
+            return;
+          }
+          setProgram(prog);
+
+          const wts = await getWorkoutTemplates(db, programId);
+          if (!cancelled) setTemplates(wts);
+        })
+        .catch(() => {
+          if (!cancelled) setProgram(null);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [ready, programId])
+  );
+
+  async function handleCreateTemplate() {
+    if (!newTemplateName.trim()) return;
+    try {
+      const db = await getDatabase();
+      await createWorkoutTemplate(db, programId, newTemplateName.trim(), templates.length);
+      setNewTemplateName('');
+      setIsCreating(false);
+      const wts = await getWorkoutTemplates(db, programId);
+      setTemplates(wts);
+    } catch {
+      Alert.alert('Error', 'Failed to create template');
+    }
+  }
 
   function confirmDelete() {
     Alert.alert(
@@ -105,14 +146,53 @@ export default function ProgramDetailScreen() {
       </TouchableOpacity>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Workout Templates</Text>
-        {templates.length === 0 ? (
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Workout Templates</Text>
+          {!isCreating && (
+            <TouchableOpacity onPress={() => setIsCreating(true)}>
+              <Text style={styles.newLink}>+ New Template</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {isCreating && (
+          <View style={styles.inlineForm}>
+            <TextInput
+              style={styles.inlineInput}
+              placeholder="Template name"
+              placeholderTextColor={Colors.textSecondary}
+              value={newTemplateName}
+              onChangeText={setNewTemplateName}
+              autoFocus
+            />
+            <View style={styles.inlineFormActions}>
+              <TouchableOpacity onPress={handleCreateTemplate} style={styles.inlineSave}>
+                <Text style={styles.inlineSaveText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsCreating(false);
+                  setNewTemplateName('');
+                }}
+              >
+                <Text style={styles.inlineCancel}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {templates.length === 0 && !isCreating ? (
           <Text style={styles.emptyText}>No workout templates yet.</Text>
         ) : (
           templates.map((wt) => (
-            <View key={wt.id} style={styles.templateCard}>
+            <TouchableOpacity
+              key={wt.id}
+              style={styles.templateCard}
+              onPress={() => router.push(`/templates/${wt.id}`)}
+            >
               <Text style={styles.templateName}>{wt.name}</Text>
-            </View>
+              <Text style={styles.templateArrow}>›</Text>
+            </TouchableOpacity>
           ))
         )}
       </View>
@@ -173,17 +253,30 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     color: Colors.primary,
     fontSize: Typography.bodyLarge,
     fontWeight: '700',
-    marginBottom: Spacing.sm,
+  },
+  newLink: {
+    color: Colors.primary,
+    fontSize: Typography.body,
+    fontWeight: '600',
   },
   emptyText: {
     color: Colors.textSecondary,
     fontSize: Typography.body,
   },
   templateCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: 8,
     paddingVertical: Spacing.sm,
@@ -194,6 +287,45 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: Typography.body,
     fontWeight: '500',
+  },
+  templateArrow: {
+    color: Colors.textSecondary,
+    fontSize: Typography.bodyLarge,
+  },
+  inlineForm: {
+    backgroundColor: Colors.surface,
+    borderRadius: 8,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  inlineInput: {
+    backgroundColor: Colors.background,
+    color: Colors.text,
+    borderRadius: 6,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    fontSize: Typography.body,
+  },
+  inlineFormActions: {
+    flexDirection: 'row',
+    marginTop: Spacing.sm,
+    gap: Spacing.md,
+  },
+  inlineSave: {
+    backgroundColor: Colors.primary,
+    borderRadius: 6,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  inlineSaveText: {
+    color: Colors.background,
+    fontSize: Typography.body,
+    fontWeight: '600',
+  },
+  inlineCancel: {
+    color: Colors.textSecondary,
+    fontSize: Typography.body,
+    paddingVertical: Spacing.sm,
   },
   deleteButton: {
     borderWidth: 1,

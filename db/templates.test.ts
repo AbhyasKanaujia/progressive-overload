@@ -117,5 +117,18 @@ describe('templates CRUD', () => {
         targetRepsMax: 10,
       });
     });
+
+    it('retrieves template exercises with exercise details', async () => {
+      await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      const list = await templates.getTemplateExercisesWithDetails(db, templateId);
+      expect(list.length).toBe(1);
+      expect(list[0]).toMatchObject({
+        exerciseName: 'Test Bench Press',
+        equipment: 'Barbell',
+        targetSets: 3,
+        targetRepsMin: 8,
+        targetRepsMax: 12,
+      });
+    });
   });
 });
