@@ -19,9 +19,9 @@
 
 <!-- List exact steps to verify this PR in the running app. The reviewer will follow these before merging. -->
 
-1.
-2.
-3.
+- [ ] Step 1:
+- [ ] Step 2:
+- [ ] Step 3:
 
 ## Related issue
 
