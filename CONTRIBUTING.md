@@ -16,6 +16,7 @@ Every PR must pass these checks. CI enforces them automatically.
 - [ ] **Tests exist** — every new source file needs a corresponding `.test.ts` in `__tests__/` or alongside it
 - [ ] **Coverage threshold** — global coverage must stay above the configured threshold
 - [ ] **Commit messages** follow conventional commits: `feat:`, `fix:`, `ci:`, `refactor:`, etc.
+- [ ] **Manual tests listed** — describe exact steps a human can follow to verify the feature or fix in the app (e.g. "1. Open Workouts tab → 2. Tap Add Exercise → 3. Verify form appears")
 
 ## Branch naming
 
