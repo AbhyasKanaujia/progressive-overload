@@ -4,3 +4,4 @@ coverage/
 *.lock
 scripts/
 dev_docs/
+*.md
