@@ -57,7 +57,24 @@ describe('database initialization', () => {
     const row = await db.getFirstAsync<{ version: number }>(
       'SELECT version FROM schema_migrations WHERE id = 1'
     );
-    expect(row?.version).toBe(2);
+    expect(row?.version).toBe(3);
+  });
+
+  it('adds Programs tab columns in v3', async () => {
+    const db = await getDatabase();
+    const workoutTemplateColumns = await db.getAllAsync<{ name: string }>(
+      'PRAGMA table_info(workout_templates)'
+    );
+    const workoutTemplateNames = workoutTemplateColumns.map((c) => c.name);
+    expect(workoutTemplateNames).toContain('description');
+    expect(workoutTemplateNames).toContain('workout_type');
+
+    const templateExerciseColumns = await db.getAllAsync<{ name: string }>(
+      'PRAGMA table_info(template_exercises)'
+    );
+    const templateExerciseNames = templateExerciseColumns.map((c) => c.name);
+    expect(templateExerciseNames).toContain('rest');
+    expect(templateExerciseNames).toContain('notes');
   });
 
   it('does not re-seed on subsequent opens', async () => {

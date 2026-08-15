@@ -19,8 +19,6 @@ export function resetDatabase(): void {
 
 // ─── Schema Migrations ───
 
-const CURRENT_SCHEMA_VERSION = 2;
-
 type Migration = {
   version: number;
   name: string;
@@ -178,6 +176,18 @@ const MIGRATIONS: Migration[] = [
           key TEXT PRIMARY KEY,
           value TEXT
         )
+      `);
+    },
+  },
+  {
+    version: 3,
+    name: 'Add Programs tab fields',
+    up: async (database) => {
+      await database.execAsync(`
+        ALTER TABLE workout_templates ADD COLUMN description TEXT;
+        ALTER TABLE workout_templates ADD COLUMN workout_type TEXT;
+        ALTER TABLE template_exercises ADD COLUMN rest TEXT;
+        ALTER TABLE template_exercises ADD COLUMN notes TEXT;
       `);
     },
   },
