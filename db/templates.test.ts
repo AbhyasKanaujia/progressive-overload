@@ -76,6 +76,47 @@ describe('templates CRUD', () => {
       const deleted = await templates.getWorkoutTemplateById(db, wtId);
       expect(deleted).toBeNull();
     });
+
+    it('round-trips description and workoutType', async () => {
+      const id = await templates.createWorkoutTemplate(
+        db,
+        programId,
+        'Push Day',
+        0,
+        'Chest and triceps focus',
+        'Push'
+      );
+      const wt = await templates.getWorkoutTemplateById(db, id);
+      expect(wt).toMatchObject({
+        description: 'Chest and triceps focus',
+        workoutType: 'Push',
+      });
+    });
+
+    it('defaults description and workoutType to null when omitted', async () => {
+      const id = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
+      const wt = await templates.getWorkoutTemplateById(db, id);
+      expect(wt).toMatchObject({ description: null, workoutType: null });
+    });
+
+    it('updates description and workoutType', async () => {
+      const id = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
+      await templates.updateWorkoutTemplate(db, id, 'Push Day', 0, 'Updated focus', 'Upper');
+      const wt = await templates.getWorkoutTemplateById(db, id);
+      expect(wt).toMatchObject({ description: 'Updated focus', workoutType: 'Upper' });
+    });
+
+    it('reorders workout templates', async () => {
+      const a = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      const b = await templates.createWorkoutTemplate(db, programId, 'B', 1);
+      const c = await templates.createWorkoutTemplate(db, programId, 'C', 2);
+
+      await templates.reorderWorkoutTemplates(db, programId, [c, a, b]);
+
+      const ordered = await templates.getWorkoutTemplates(db, programId);
+      expect(ordered.map((wt) => wt.id)).toEqual([c, a, b]);
+      expect(ordered.map((wt) => wt.orderIndex)).toEqual([0, 1, 2]);
+    });
   });
 
   describe('template exercises', () => {
@@ -129,6 +170,47 @@ describe('templates CRUD', () => {
         targetRepsMin: 8,
         targetRepsMax: 12,
       });
+    });
+
+    it('round-trips rest and notes', async () => {
+      const id = await templates.createTemplateExercise(
+        db,
+        templateId,
+        exerciseId,
+        0,
+        3,
+        8,
+        12,
+        '2–3 min',
+        'Focus on controlled reps'
+      );
+      const te = await templates.getTemplateExerciseById(db, id);
+      expect(te).toMatchObject({ rest: '2–3 min', notes: 'Focus on controlled reps' });
+    });
+
+    it('defaults rest and notes to null when omitted', async () => {
+      const id = await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      const te = await templates.getTemplateExerciseById(db, id);
+      expect(te).toMatchObject({ rest: null, notes: null });
+    });
+
+    it('updates rest and notes', async () => {
+      const id = await templates.createTemplateExercise(db, templateId, exerciseId, 0, 3, 8, 12);
+      await templates.updateTemplateExercise(db, id, 0, 3, 8, 12, '90 sec', 'Slow eccentric');
+      const te = await templates.getTemplateExerciseById(db, id);
+      expect(te).toMatchObject({ rest: '90 sec', notes: 'Slow eccentric' });
+    });
+
+    it('reorders template exercises', async () => {
+      const a = await templates.createTemplateExercise(db, templateId, exerciseId, 0);
+      const b = await templates.createTemplateExercise(db, templateId, exerciseId, 1);
+      const c = await templates.createTemplateExercise(db, templateId, exerciseId, 2);
+
+      await templates.reorderTemplateExercises(db, templateId, [c, a, b]);
+
+      const ordered = await templates.getTemplateExercises(db, templateId);
+      expect(ordered.map((te) => te.id)).toEqual([c, a, b]);
+      expect(ordered.map((te) => te.orderIndex)).toEqual([0, 1, 2]);
     });
   });
 });

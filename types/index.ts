@@ -30,11 +30,15 @@ export interface Program {
   createdAt: string;
 }
 
+export type WorkoutType = 'Push' | 'Pull' | 'Legs' | 'Upper' | 'Lower' | 'Other';
+
 export interface WorkoutTemplate {
   id: number;
   programId: number;
   name: string;
   orderIndex: number;
+  description: string | null;
+  workoutType: WorkoutType | null;
 }
 
 export interface TemplateExercise {
@@ -45,6 +49,8 @@ export interface TemplateExercise {
   targetSets: number;
   targetRepsMin: number;
   targetRepsMax: number;
+  rest: string | null;
+  notes: string | null;
 }
 
 // Workout Sessions

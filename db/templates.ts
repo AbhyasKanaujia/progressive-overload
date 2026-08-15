@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from 'expo-sqlite';
-import { Program, WorkoutTemplate, TemplateExercise } from '../types';
+import { Program, WorkoutTemplate, TemplateExercise, WorkoutType } from '../types';
 
 // Programs
 
@@ -53,13 +53,17 @@ export async function createWorkoutTemplate(
   db: SQLiteDatabase,
   programId: number,
   name: string,
-  orderIndex: number = 0
+  orderIndex: number = 0,
+  description?: string,
+  workoutType?: WorkoutType
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO workout_templates (program_id, name, order_index) VALUES (?, ?, ?)',
+    'INSERT INTO workout_templates (program_id, name, order_index, description, workout_type) VALUES (?, ?, ?, ?, ?)',
     programId,
     name,
-    orderIndex
+    orderIndex,
+    description ?? null,
+    workoutType ?? null
   );
   return result.lastInsertRowId;
 }
@@ -69,7 +73,7 @@ export async function getWorkoutTemplates(
   programId: number
 ): Promise<WorkoutTemplate[]> {
   return db.getAllAsync<WorkoutTemplate>(
-    'SELECT id, program_id AS programId, name, order_index AS orderIndex FROM workout_templates WHERE program_id = ? ORDER BY order_index',
+    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description, workout_type AS workoutType FROM workout_templates WHERE program_id = ? ORDER BY order_index',
     programId
   );
 }
@@ -79,7 +83,7 @@ export async function getWorkoutTemplateById(
   id: number
 ): Promise<WorkoutTemplate | null> {
   return db.getFirstAsync<WorkoutTemplate>(
-    'SELECT id, program_id AS programId, name, order_index AS orderIndex FROM workout_templates WHERE id = ?',
+    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description, workout_type AS workoutType FROM workout_templates WHERE id = ?',
     id
   );
 }
@@ -88,18 +92,39 @@ export async function updateWorkoutTemplate(
   db: SQLiteDatabase,
   id: number,
   name: string,
-  orderIndex: number
+  orderIndex: number,
+  description?: string,
+  workoutType?: WorkoutType
 ): Promise<void> {
   await db.runAsync(
-    'UPDATE workout_templates SET name = ?, order_index = ? WHERE id = ?',
+    'UPDATE workout_templates SET name = ?, order_index = ?, description = ?, workout_type = ? WHERE id = ?',
     name,
     orderIndex,
+    description ?? null,
+    workoutType ?? null,
     id
   );
 }
 
 export async function deleteWorkoutTemplate(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('DELETE FROM workout_templates WHERE id = ?', id);
+}
+
+export async function reorderWorkoutTemplates(
+  db: SQLiteDatabase,
+  programId: number,
+  orderedIds: number[]
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync(
+        'UPDATE workout_templates SET order_index = ? WHERE id = ? AND program_id = ?',
+        i,
+        orderedIds[i],
+        programId
+      );
+    }
+  });
 }
 
 // Template Exercises
@@ -111,16 +136,20 @@ export async function createTemplateExercise(
   orderIndex: number = 0,
   targetSets: number = 3,
   targetRepsMin: number = 8,
-  targetRepsMax: number = 12
+  targetRepsMax: number = 12,
+  rest?: string,
+  notes?: string
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO template_exercises (workout_template_id, exercise_id, order_index, target_sets, target_reps_min, target_reps_max) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO template_exercises (workout_template_id, exercise_id, order_index, target_sets, target_reps_min, target_reps_max, rest, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     workoutTemplateId,
     exerciseId,
     orderIndex,
     targetSets,
     targetRepsMin,
-    targetRepsMax
+    targetRepsMax,
+    rest ?? null,
+    notes ?? null
   );
   return result.lastInsertRowId;
 }
@@ -130,7 +159,7 @@ export async function getTemplateExercises(
   workoutTemplateId: number
 ): Promise<TemplateExercise[]> {
   return db.getAllAsync<TemplateExercise>(
-    'SELECT id, workout_template_id AS workoutTemplateId, exercise_id AS exerciseId, order_index AS orderIndex, target_sets AS targetSets, target_reps_min AS targetRepsMin, target_reps_max AS targetRepsMax FROM template_exercises WHERE workout_template_id = ? ORDER BY order_index',
+    'SELECT id, workout_template_id AS workoutTemplateId, exercise_id AS exerciseId, order_index AS orderIndex, target_sets AS targetSets, target_reps_min AS targetRepsMin, target_reps_max AS targetRepsMax, rest, notes FROM template_exercises WHERE workout_template_id = ? ORDER BY order_index',
     workoutTemplateId
   );
 }
@@ -140,7 +169,7 @@ export async function getTemplateExerciseById(
   id: number
 ): Promise<TemplateExercise | null> {
   return db.getFirstAsync<TemplateExercise>(
-    'SELECT id, workout_template_id AS workoutTemplateId, exercise_id AS exerciseId, order_index AS orderIndex, target_sets AS targetSets, target_reps_min AS targetRepsMin, target_reps_max AS targetRepsMax FROM template_exercises WHERE id = ?',
+    'SELECT id, workout_template_id AS workoutTemplateId, exercise_id AS exerciseId, order_index AS orderIndex, target_sets AS targetSets, target_reps_min AS targetRepsMin, target_reps_max AS targetRepsMax, rest, notes FROM template_exercises WHERE id = ?',
     id
   );
 }
@@ -151,20 +180,41 @@ export async function updateTemplateExercise(
   orderIndex: number,
   targetSets: number,
   targetRepsMin: number,
-  targetRepsMax: number
+  targetRepsMax: number,
+  rest?: string,
+  notes?: string
 ): Promise<void> {
   await db.runAsync(
-    'UPDATE template_exercises SET order_index = ?, target_sets = ?, target_reps_min = ?, target_reps_max = ? WHERE id = ?',
+    'UPDATE template_exercises SET order_index = ?, target_sets = ?, target_reps_min = ?, target_reps_max = ?, rest = ?, notes = ? WHERE id = ?',
     orderIndex,
     targetSets,
     targetRepsMin,
     targetRepsMax,
+    rest ?? null,
+    notes ?? null,
     id
   );
 }
 
 export async function deleteTemplateExercise(db: SQLiteDatabase, id: number): Promise<void> {
   await db.runAsync('DELETE FROM template_exercises WHERE id = ?', id);
+}
+
+export async function reorderTemplateExercises(
+  db: SQLiteDatabase,
+  workoutTemplateId: number,
+  orderedIds: number[]
+): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync(
+        'UPDATE template_exercises SET order_index = ? WHERE id = ? AND workout_template_id = ?',
+        i,
+        orderedIds[i],
+        workoutTemplateId
+      );
+    }
+  });
 }
 
 export interface TemplateExerciseWithDetails extends TemplateExercise {
@@ -180,6 +230,7 @@ export async function getTemplateExercisesWithDetails(
     `SELECT te.id, te.workout_template_id AS workoutTemplateId, te.exercise_id AS exerciseId,
             te.order_index AS orderIndex, te.target_sets AS targetSets,
             te.target_reps_min AS targetRepsMin, te.target_reps_max AS targetRepsMax,
+            te.rest, te.notes,
             e.name AS exerciseName, e.equipment
      FROM template_exercises te
      JOIN exercises e ON te.exercise_id = e.id
