@@ -79,6 +79,24 @@ export async function deleteProgram(db: SQLiteDatabase, id: number): Promise<voi
   await db.runAsync('DELETE FROM programs WHERE id = ?', id);
 }
 
+export interface ProgramCounts {
+  programId: number;
+  workoutCount: number;
+  exerciseCount: number;
+}
+
+export async function getProgramCounts(db: SQLiteDatabase): Promise<ProgramCounts[]> {
+  return db.getAllAsync<ProgramCounts>(
+    `SELECT p.id AS programId,
+            COUNT(DISTINCT wt.id) AS workoutCount,
+            COUNT(te.id) AS exerciseCount
+     FROM programs p
+     LEFT JOIN workout_templates wt ON wt.program_id = p.id
+     LEFT JOIN template_exercises te ON te.workout_template_id = wt.id
+     GROUP BY p.id`
+  );
+}
+
 // Workout Templates
 
 export async function createWorkoutTemplate(

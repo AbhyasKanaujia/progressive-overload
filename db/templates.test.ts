@@ -52,6 +52,27 @@ describe('templates CRUD', () => {
       const deleted = await templates.getProgramById(db, programId);
       expect(deleted).toBeNull();
     });
+
+    it('derives workout and exercise counts per program', async () => {
+      const otherProgramId = await templates.createProgram(db, 'Empty Program');
+      const wtId = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
+      await templates.createWorkoutTemplate(db, programId, 'Pull Day', 1);
+      await templates.createTemplateExercise(db, wtId, exerciseId, 0);
+      await templates.createTemplateExercise(db, wtId, exerciseId, 1);
+
+      const counts = await templates.getProgramCounts(db);
+
+      expect(counts).toContainEqual({
+        programId,
+        workoutCount: 2,
+        exerciseCount: 2,
+      });
+      expect(counts).toContainEqual({
+        programId: otherProgramId,
+        workoutCount: 0,
+        exerciseCount: 0,
+      });
+    });
   });
 
   describe('workout templates', () => {
