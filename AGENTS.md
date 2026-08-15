@@ -5,3 +5,5 @@ All PRs must pass CI and follow CONTRIBUTING.md.
 Issues are tracked in GitHub and can be retrieved through the gh command.
 Always retrieve all the comments when getting an issue.
  
+
+Always start by reading the dev_docs
