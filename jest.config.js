@@ -12,18 +12,19 @@ module.exports = {
     ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  // Only collect coverage from pure .ts files; .tsx JSX needs metro/babel
   collectCoverageFrom: [
     'db/**/*.ts',
     'hooks/**/*.ts',
     'store/**/*.ts',
     'types/**/*.ts',
+    'components/**/*.tsx',
     '!**/_layout.tsx',
     '!**/index.ts',
     '!**/*.test.ts',
+    '!**/*.test.tsx',
     '!**/*.d.ts',
   ],
-  // TODO: raise thresholds after issue #1 is merged and real tests are added
+  // TODO: raise thresholds once coverage is consistently tracked across app/ screens (issue #31+)
   coverageThreshold: {
     global: {
       branches: 0,
