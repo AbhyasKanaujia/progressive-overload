@@ -1,13 +1,22 @@
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
+
+const modalAnimation = Platform.OS === 'android' ? 'slide_from_bottom' : undefined;
 
 export default function ProgramsLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="add" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="add" options={{ presentation: 'modal', animation: modalAnimation }} />
       <Stack.Screen name="[programId]/index" />
-      <Stack.Screen name="[programId]/edit" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="[programId]/delete" options={{ presentation: 'transparentModal' }} />
+      <Stack.Screen
+        name="[programId]/edit"
+        options={{ presentation: 'modal', animation: modalAnimation }}
+      />
+      <Stack.Screen
+        name="[programId]/delete"
+        options={{ presentation: 'transparentModal', animation: modalAnimation }}
+      />
     </Stack>
   );
 }

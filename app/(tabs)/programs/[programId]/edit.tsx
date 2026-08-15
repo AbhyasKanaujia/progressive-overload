@@ -15,6 +15,7 @@ import { Button } from '../../../../components/Button';
 import { colors, radius, spacing, typography } from '../../../../constants/theme';
 import { getDatabase } from '../../../../db/init';
 import { getProgramById } from '../../../../db/templates';
+import { Program } from '../../../../types';
 import { useProgramsList } from '../../../../hooks/useProgramsList';
 
 const NAME_MAX = 60;
@@ -23,10 +24,12 @@ const DESCRIPTION_MAX = 200;
 export default function EditProgramScreen() {
   const router = useRouter();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const id = Number(programId);
+  const rawProgramId = programId;
+  const id = Number(rawProgramId);
   const { editProgram } = useProgramsList();
 
   const [loading, setLoading] = useState(true);
+  const [program, setProgram] = useState<Program | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
@@ -36,20 +39,28 @@ export default function EditProgramScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const db = await getDatabase();
-      const program = await getProgramById(db, id);
-      if (!cancelled && program) {
-        setName(program.name);
-        setDescription(program.description ?? '');
+      if (Number.isNaN(id)) {
+        console.warn(`EditProgram: invalid programId: ${rawProgramId}`);
+        if (!cancelled) setLoading(false);
+        return;
       }
+      const db = await getDatabase();
+      const p = await getProgramById(db, id);
       if (!cancelled) {
+        if (p) {
+          setProgram(p);
+          setName(p.name);
+          setDescription(p.description ?? '');
+        } else {
+          console.warn(`EditProgram: program not found for id: ${id}, raw: ${rawProgramId}`);
+        }
         setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, rawProgramId]);
 
   const handleSave = async () => {
     const trimmedName = name.trim();
@@ -90,6 +101,17 @@ export default function EditProgramScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!program) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Program not found.</Text>
+        <View style={styles.cta}>
+          <Button variant="primary" label="Go Back" onPress={() => router.back()} />
+        </View>
       </View>
     );
   }
@@ -154,6 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: spacing.xxl,
   },
   container: {
     padding: spacing.xl,
@@ -200,5 +223,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+  },
+  cta: {
+    marginTop: spacing.lg,
   },
 });

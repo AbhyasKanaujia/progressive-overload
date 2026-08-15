@@ -11,7 +11,8 @@ import { useProgramsList } from '../../../../hooks/useProgramsList';
 export default function DeleteProgramScreen() {
   const router = useRouter();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const id = Number(programId);
+  const rawProgramId = programId;
+  const id = Number(rawProgramId);
   const { removeProgram } = useProgramsList();
 
   const [loading, setLoading] = useState(true);
@@ -22,19 +23,26 @@ export default function DeleteProgramScreen() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (Number.isNaN(id)) {
+        console.warn(`DeleteProgram: invalid programId: ${rawProgramId}`);
+        if (!cancelled) setLoading(false);
+        return;
+      }
       const db = await getDatabase();
       const program = await getProgramById(db, id);
-      if (!cancelled && program) {
-        setProgramName(program.name);
-      }
       if (!cancelled) {
+        if (program) {
+          setProgramName(program.name);
+        } else {
+          console.warn(`DeleteProgram: program not found for id: ${id}, raw: ${rawProgramId}`);
+        }
         setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, rawProgramId]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -54,6 +62,20 @@ export default function DeleteProgramScreen() {
       <View style={styles.overlay}>
         <View style={styles.sheet}>
           <ActivityIndicator color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  if (!programName) {
+    return (
+      <View style={styles.overlay}>
+        <View style={styles.sheet}>
+          <Text style={styles.title}>Program not found</Text>
+          <Text style={styles.body}>This program could not be loaded.</Text>
+          <View style={styles.actions}>
+            <Button variant="primary" label="Go Back" onPress={() => router.back()} />
+          </View>
         </View>
       </View>
     );

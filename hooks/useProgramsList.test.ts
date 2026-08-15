@@ -69,4 +69,19 @@ describe('useProgramsList', () => {
     });
     expect(result.current.programs).toEqual([]);
   });
+
+  it('reloads silently without setting refreshing flag', async () => {
+    const { result } = await renderHook(() => useProgramsList());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.addProgram('Silent Reload Test');
+    });
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    expect(result.current.programs).toHaveLength(1);
+    expect(result.current.refreshing).toBe(false);
+  });
 });

@@ -1,6 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../../../components/Button';
 import { Card } from '../../../components/Card';
@@ -13,8 +16,20 @@ import { useAppStore } from '../../../store';
 
 export default function ProgramsListScreen() {
   const router = useRouter();
-  const { programs, loading, error, refresh } = useProgramsList();
+  const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
+  const { programs, loading, refreshing, error, refresh, reload } = useProgramsList();
   const activeProgramId = useAppStore((state) => state.activeProgramId);
+
+  const hasReturned = useRef(false);
+  useEffect(() => {
+    if (!isFocused) return;
+    if (!hasReturned.current) {
+      hasReturned.current = true;
+      return;
+    }
+    reload();
+  }, [isFocused, reload]);
 
   const openActions = (program: ProgramListItem) => {
     Alert.alert(program.name, undefined, [
@@ -48,13 +63,14 @@ export default function ProgramsListScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Programs</Text>
         {programs.length > 0 ? (
           <Button
-            variant="primary"
-            label="Create Program"
+            variant="icon"
+            accessibilityLabel="Create Program"
+            icon={<Ionicons name="add" size={24} color={colors.primary} />}
             onPress={() => router.push('/programs/add')}
           />
         ) : null}
@@ -75,7 +91,7 @@ export default function ProgramsListScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
           onRefresh={refresh}
-          refreshing={false}
+          refreshing={refreshing}
           renderItem={({ item }) => (
             <Card
               title={item.name}
@@ -122,13 +138,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
   },
   title: {
-    fontFamily: typography.display.fontFamily,
-    fontSize: typography.display.fontSize,
-    lineHeight: typography.display.lineHeight,
+    fontFamily: typography.title.fontFamily,
+    fontSize: typography.title.fontSize,
+    lineHeight: typography.title.lineHeight,
     color: colors.neutral900,
   },
   emptyWrapper: {
