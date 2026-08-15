@@ -117,6 +117,34 @@ describe('templates CRUD', () => {
       expect(ordered.map((wt) => wt.id)).toEqual([c, a, b]);
       expect(ordered.map((wt) => wt.orderIndex)).toEqual([0, 1, 2]);
     });
+
+    it('rejects reorder when orderedIds omits an existing workout template', async () => {
+      const a = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      await templates.createWorkoutTemplate(db, programId, 'B', 1);
+
+      await expect(templates.reorderWorkoutTemplates(db, programId, [a])).rejects.toThrow();
+    });
+
+    it('rejects reorder when orderedIds includes an id from another program', async () => {
+      const a = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      const otherProgramId = await templates.createProgram(db, 'Other Program');
+      const foreign = await templates.createWorkoutTemplate(db, otherProgramId, 'Foreign', 0);
+
+      await expect(
+        templates.reorderWorkoutTemplates(db, programId, [a, foreign])
+      ).rejects.toThrow();
+    });
+
+    it('leaves order unchanged when reorder is rejected', async () => {
+      const a = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+      const b = await templates.createWorkoutTemplate(db, programId, 'B', 1);
+
+      await expect(templates.reorderWorkoutTemplates(db, programId, [a])).rejects.toThrow();
+
+      const unchanged = await templates.getWorkoutTemplates(db, programId);
+      expect(unchanged.map((wt) => wt.id)).toEqual([a, b]);
+      expect(unchanged.map((wt) => wt.orderIndex)).toEqual([0, 1]);
+    });
   });
 
   describe('template exercises', () => {
@@ -211,6 +239,34 @@ describe('templates CRUD', () => {
       const ordered = await templates.getTemplateExercises(db, templateId);
       expect(ordered.map((te) => te.id)).toEqual([c, a, b]);
       expect(ordered.map((te) => te.orderIndex)).toEqual([0, 1, 2]);
+    });
+
+    it('rejects reorder when orderedIds omits an existing template exercise', async () => {
+      const a = await templates.createTemplateExercise(db, templateId, exerciseId, 0);
+      await templates.createTemplateExercise(db, templateId, exerciseId, 1);
+
+      await expect(templates.reorderTemplateExercises(db, templateId, [a])).rejects.toThrow();
+    });
+
+    it('rejects reorder when orderedIds includes an id from another workout template', async () => {
+      const a = await templates.createTemplateExercise(db, templateId, exerciseId, 0);
+      const otherTemplateId = await templates.createWorkoutTemplate(db, programId, 'Pull Day', 1);
+      const foreign = await templates.createTemplateExercise(db, otherTemplateId, exerciseId, 0);
+
+      await expect(
+        templates.reorderTemplateExercises(db, templateId, [a, foreign])
+      ).rejects.toThrow();
+    });
+
+    it('leaves order unchanged when reorder is rejected', async () => {
+      const a = await templates.createTemplateExercise(db, templateId, exerciseId, 0);
+      const b = await templates.createTemplateExercise(db, templateId, exerciseId, 1);
+
+      await expect(templates.reorderTemplateExercises(db, templateId, [a])).rejects.toThrow();
+
+      const unchanged = await templates.getTemplateExercises(db, templateId);
+      expect(unchanged.map((te) => te.id)).toEqual([a, b]);
+      expect(unchanged.map((te) => te.orderIndex)).toEqual([0, 1]);
     });
   });
 });

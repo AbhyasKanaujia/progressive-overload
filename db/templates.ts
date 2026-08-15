@@ -1,6 +1,38 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 import { Program, WorkoutTemplate, TemplateExercise, WorkoutType } from '../types';
 
+async function reorderRows(
+  db: SQLiteDatabase,
+  table: 'workout_templates' | 'template_exercises',
+  parentColumn: 'program_id' | 'workout_template_id',
+  parentId: number,
+  orderedIds: number[]
+): Promise<void> {
+  const existing = await db.getAllAsync<{ id: number }>(
+    `SELECT id FROM ${table} WHERE ${parentColumn} = ?`,
+    parentId
+  );
+  const existingIds = new Set(existing.map((row) => row.id));
+  const providedIds = new Set(orderedIds);
+  if (
+    existingIds.size !== providedIds.size ||
+    [...existingIds].some((id) => !providedIds.has(id))
+  ) {
+    throw new Error(`reorder must include every ${table} row for ${parentColumn} ${parentId}`);
+  }
+
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.runAsync(
+        `UPDATE ${table} SET order_index = ? WHERE id = ? AND ${parentColumn} = ?`,
+        i,
+        orderedIds[i],
+        parentId
+      );
+    }
+  });
+}
+
 // Programs
 
 export async function createProgram(
@@ -115,16 +147,7 @@ export async function reorderWorkoutTemplates(
   programId: number,
   orderedIds: number[]
 ): Promise<void> {
-  await db.withTransactionAsync(async () => {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await db.runAsync(
-        'UPDATE workout_templates SET order_index = ? WHERE id = ? AND program_id = ?',
-        i,
-        orderedIds[i],
-        programId
-      );
-    }
-  });
+  await reorderRows(db, 'workout_templates', 'program_id', programId, orderedIds);
 }
 
 // Template Exercises
@@ -205,16 +228,7 @@ export async function reorderTemplateExercises(
   workoutTemplateId: number,
   orderedIds: number[]
 ): Promise<void> {
-  await db.withTransactionAsync(async () => {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await db.runAsync(
-        'UPDATE template_exercises SET order_index = ? WHERE id = ? AND workout_template_id = ?',
-        i,
-        orderedIds[i],
-        workoutTemplateId
-      );
-    }
-  });
+  await reorderRows(db, 'template_exercises', 'workout_template_id', workoutTemplateId, orderedIds);
 }
 
 export interface TemplateExerciseWithDetails extends TemplateExercise {
