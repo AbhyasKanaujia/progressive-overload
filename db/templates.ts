@@ -168,6 +168,26 @@ export async function reorderWorkoutTemplates(
   await reorderRows(db, 'workout_templates', 'program_id', programId, orderedIds);
 }
 
+export interface WorkoutTemplateCounts {
+  workoutTemplateId: number;
+  exerciseCount: number;
+}
+
+export async function getWorkoutTemplateCounts(
+  db: SQLiteDatabase,
+  programId: number
+): Promise<WorkoutTemplateCounts[]> {
+  return db.getAllAsync<WorkoutTemplateCounts>(
+    `SELECT wt.id AS workoutTemplateId,
+            COUNT(te.id) AS exerciseCount
+     FROM workout_templates wt
+     LEFT JOIN template_exercises te ON te.workout_template_id = wt.id
+     WHERE wt.program_id = ?
+     GROUP BY wt.id`,
+    programId
+  );
+}
+
 // Template Exercises
 
 export async function createTemplateExercise(

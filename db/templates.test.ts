@@ -166,6 +166,18 @@ describe('templates CRUD', () => {
       expect(unchanged.map((wt) => wt.id)).toEqual([a, b]);
       expect(unchanged.map((wt) => wt.orderIndex)).toEqual([0, 1]);
     });
+
+    it('derives exercise counts per workout template', async () => {
+      const wtId = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
+      const emptyId = await templates.createWorkoutTemplate(db, programId, 'Pull Day', 1);
+      await templates.createTemplateExercise(db, wtId, exerciseId, 0);
+      await templates.createTemplateExercise(db, wtId, exerciseId, 1);
+
+      const counts = await templates.getWorkoutTemplateCounts(db, programId);
+
+      expect(counts).toContainEqual({ workoutTemplateId: wtId, exerciseCount: 2 });
+      expect(counts).toContainEqual({ workoutTemplateId: emptyId, exerciseCount: 0 });
+    });
   });
 
   describe('template exercises', () => {

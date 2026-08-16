@@ -49,7 +49,7 @@ export default function DeleteProgramScreen() {
     setError(null);
     try {
       await removeProgram(id);
-      router.replace('/programs');
+      router.dismissTo('/programs');
     } catch {
       setError("Couldn't delete the program. Please try again.");
     } finally {

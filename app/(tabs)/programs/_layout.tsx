@@ -17,6 +17,15 @@ export default function ProgramsLayout() {
         name="[programId]/delete"
         options={{ presentation: 'transparentModal', animation: modalAnimation }}
       />
+      <Stack.Screen
+        name="[programId]/reorder-workouts"
+        options={{ presentation: 'modal', animation: modalAnimation }}
+      />
+      <Stack.Screen
+        name="[programId]/add-workout"
+        options={{ presentation: 'modal', animation: modalAnimation }}
+      />
+      <Stack.Screen name="[programId]/[workoutId]/index" />
     </Stack>
   );
 }

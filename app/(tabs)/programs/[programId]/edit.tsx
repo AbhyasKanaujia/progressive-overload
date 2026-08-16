@@ -132,6 +132,7 @@ export default function EditProgramScreen() {
             onChangeText={setName}
             placeholder="e.g. Upper / Lower Split"
             placeholderTextColor={colors.neutral500}
+            autoCapitalize="words"
           />
           {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
         </View>

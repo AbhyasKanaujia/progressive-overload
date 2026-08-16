@@ -1,47 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from '../../../../components/Button';
 import { Breadcrumb } from '../../../../components/Breadcrumb';
+import { Button } from '../../../../components/Button';
+import { Chip } from '../../../../components/Chip';
+import { EmptyState } from '../../../../components/EmptyState';
+import { ListRow } from '../../../../components/ListRow';
 import { colors, spacing, typography } from '../../../../constants/theme';
-import { getDatabase } from '../../../../db/init';
-import { getProgramById } from '../../../../db/templates';
+import { WorkoutListItem, useProgram } from '../../../../hooks/useProgram';
+import { useAppStore } from '../../../../store';
 
 export default function ProgramDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const rawProgramId = programId;
-  const id = Number(rawProgramId);
-
-  const [loading, setLoading] = useState(true);
-  const [programName, setProgramName] = useState('');
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (Number.isNaN(id)) {
-        console.warn(`ProgramDetail: invalid programId: ${rawProgramId}`);
-        if (!cancelled) setLoading(false);
-        return;
-      }
-      const db = await getDatabase();
-      const program = await getProgramById(db, id);
-      if (!cancelled) {
-        if (program) {
-          setProgramName(program.name);
-        } else {
-          console.warn(`ProgramDetail: program not found for id: ${id}, raw: ${rawProgramId}`);
-        }
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, rawProgramId]);
+  const id = Number(programId);
+  const { program, workouts, loading, error, reload } = useProgram(id);
+  const activeProgramId = useAppStore((state) => state.activeProgramId);
 
   if (loading) {
     return (
@@ -51,7 +28,15 @@ export default function ProgramDetailScreen() {
     );
   }
 
-  if (!programName) {
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Something went wrong. Please try again.</Text>
+      </View>
+    );
+  }
+
+  if (!program) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>Program not found.</Text>
@@ -62,14 +47,110 @@ export default function ProgramDetailScreen() {
     );
   }
 
+  const isActive = program.id === activeProgramId;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Breadcrumb
-        items={[{ label: 'Programs', onPress: () => router.back() }, { label: programName }]}
-      />
-      <Text style={styles.title}>{programName}</Text>
-      <Text style={styles.placeholder}>Workout list coming soon.</Text>
+      <View style={styles.header}>
+        <Breadcrumb
+          items={[{ label: 'Programs', onPress: () => router.back() }, { label: program.name }]}
+        />
+        <View style={styles.headerActions}>
+          <Button
+            variant="icon"
+            accessibilityLabel="Edit Program"
+            icon={<Ionicons name="create-outline" size={20} color={colors.neutral500} />}
+            onPress={() => router.push(`/programs/${program.id}/edit`)}
+          />
+          <Button
+            variant="icon"
+            accessibilityLabel="Delete Program"
+            icon={<Ionicons name="trash-outline" size={20} color={colors.neutral500} />}
+            onPress={() => router.push(`/programs/${program.id}/delete`)}
+          />
+        </View>
+      </View>
+
+      <View style={styles.titleRow}>
+        <Text style={styles.title} numberOfLines={1}>
+          {program.name}
+        </Text>
+        {isActive ? <Chip label="Active" selected /> : null}
+      </View>
+      {program.description ? <Text style={styles.description}>{program.description}</Text> : null}
+
+      {workouts.length > 0 ? (
+        <View style={styles.listHeader}>
+          <Text style={styles.sectionTitle}>Workouts</Text>
+          <View style={styles.listHeaderActions}>
+            {workouts.length > 1 ? (
+              <Button
+                variant="icon"
+                accessibilityLabel="Reorder Workouts"
+                icon={<Ionicons name="reorder-three" size={20} color={colors.neutral500} />}
+                onPress={() => router.push(`/programs/${program.id}/reorder-workouts`)}
+              />
+            ) : null}
+            <Button
+              variant="icon"
+              accessibilityLabel="Add Workout"
+              icon={<Ionicons name="add" size={22} color={colors.primary} />}
+              onPress={() => router.push(`/programs/${program.id}/add-workout`)}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {workouts.length === 0 ? (
+        <View style={styles.emptyWrapper}>
+          <EmptyState
+            title="No workouts yet"
+            description="Add a workout to start building this program."
+            ctaLabel="+ Add Workout"
+            onPressCta={() => router.push(`/programs/${program.id}/add-workout`)}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={workouts}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.listContent}
+          onRefresh={reload}
+          refreshing={false}
+          renderItem={({ item, index }) => (
+            <WorkoutRow
+              item={item}
+              position={index + 1}
+              onPress={() => router.push(`/programs/${program.id}/${item.id}`)}
+            />
+          )}
+        />
+      )}
     </View>
+  );
+}
+
+function WorkoutRow({
+  item,
+  position,
+  onPress,
+}: {
+  item: WorkoutListItem;
+  position: number;
+  onPress: () => void;
+}) {
+  return (
+    <ListRow
+      title={item.name}
+      metadata={`${item.exerciseCount} exercises`}
+      leading={
+        <View style={styles.positionBadge}>
+          <Text style={styles.positionText}>{position}</Text>
+        </View>
+      }
+      trailing={<Ionicons name="chevron-forward" size={18} color={colors.neutral300} />}
+      onPress={onPress}
+    />
   );
 }
 
@@ -77,8 +158,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral50,
-    padding: spacing.xl,
-    gap: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
   },
   centered: {
     flex: 1,
@@ -86,23 +167,80 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xxl,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.lg,
+    gap: spacing.md,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   title: {
-    fontFamily: typography.title.fontFamily,
-    fontSize: typography.title.fontSize,
-    lineHeight: typography.title.lineHeight,
+    flexShrink: 1,
+    fontFamily: typography.display.fontFamily,
+    fontSize: typography.display.fontSize,
+    lineHeight: typography.display.lineHeight,
     color: colors.neutral900,
   },
-  placeholder: {
+  description: {
     fontFamily: typography.body.fontFamily,
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     color: colors.neutral500,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+  },
+  listHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: typography.subtitle.fontFamily,
+    fontSize: typography.subtitle.fontSize,
+    lineHeight: typography.subtitle.lineHeight,
+    color: colors.neutral900,
+  },
+  emptyWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  listContent: {
+    paddingBottom: spacing.xxl,
+  },
+  positionBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.neutral100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  positionText: {
+    fontFamily: typography.caption.fontFamily,
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    color: colors.neutral700,
   },
   errorText: {
     fontFamily: typography.caption.fontFamily,
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     color: colors.danger,
+    textAlign: 'center',
   },
   cta: {
     marginTop: spacing.lg,
