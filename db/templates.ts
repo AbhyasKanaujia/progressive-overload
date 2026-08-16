@@ -1,5 +1,5 @@
 import { SQLiteDatabase } from 'expo-sqlite';
-import { Program, WorkoutTemplate, TemplateExercise, WorkoutType } from '../types';
+import { Program, WorkoutTemplate, TemplateExercise } from '../types';
 
 async function reorderRows(
   db: SQLiteDatabase,
@@ -104,16 +104,14 @@ export async function createWorkoutTemplate(
   programId: number,
   name: string,
   orderIndex: number = 0,
-  description?: string,
-  workoutType?: WorkoutType
+  description?: string
 ): Promise<number> {
   const result = await db.runAsync(
-    'INSERT INTO workout_templates (program_id, name, order_index, description, workout_type) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO workout_templates (program_id, name, order_index, description) VALUES (?, ?, ?, ?)',
     programId,
     name,
     orderIndex,
-    description ?? null,
-    workoutType ?? null
+    description ?? null
   );
   return result.lastInsertRowId;
 }
@@ -123,7 +121,7 @@ export async function getWorkoutTemplates(
   programId: number
 ): Promise<WorkoutTemplate[]> {
   return db.getAllAsync<WorkoutTemplate>(
-    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description, workout_type AS workoutType FROM workout_templates WHERE program_id = ? ORDER BY order_index',
+    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description FROM workout_templates WHERE program_id = ? ORDER BY order_index',
     programId
   );
 }
@@ -133,7 +131,7 @@ export async function getWorkoutTemplateById(
   id: number
 ): Promise<WorkoutTemplate | null> {
   return db.getFirstAsync<WorkoutTemplate>(
-    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description, workout_type AS workoutType FROM workout_templates WHERE id = ?',
+    'SELECT id, program_id AS programId, name, order_index AS orderIndex, description FROM workout_templates WHERE id = ?',
     id
   );
 }
@@ -143,15 +141,13 @@ export async function updateWorkoutTemplate(
   id: number,
   name: string,
   orderIndex: number,
-  description?: string,
-  workoutType?: WorkoutType
+  description?: string
 ): Promise<void> {
   await db.runAsync(
-    'UPDATE workout_templates SET name = ?, order_index = ?, description = ?, workout_type = ? WHERE id = ?',
+    'UPDATE workout_templates SET name = ?, order_index = ?, description = ? WHERE id = ?',
     name,
     orderIndex,
     description ?? null,
-    workoutType ?? null,
     id
   );
 }

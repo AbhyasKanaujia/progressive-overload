@@ -191,6 +191,15 @@ const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    version: 4,
+    name: 'Remove workout_type',
+    up: async (database) => {
+      await database.execAsync(`
+        ALTER TABLE workout_templates DROP COLUMN workout_type;
+      `);
+    },
+  },
 ];
 
 async function runMigrations(database: SQLite.SQLiteDatabase) {

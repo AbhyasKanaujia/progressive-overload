@@ -1,7 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useIsFocused } from '@react-navigation/native';
-import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,24 +10,16 @@ import { EmptyState } from '../../../components/EmptyState';
 import { IdentityBadge } from '../../../components/IdentityBadge';
 import { colors, spacing, typography } from '../../../constants/theme';
 import { ProgramListItem, useProgramsList } from '../../../hooks/useProgramsList';
+import { useReloadOnFocus } from '../../../hooks/useReloadOnFocus';
 import { useAppStore } from '../../../store';
 
 export default function ProgramsListScreen() {
   const router = useRouter();
-  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const { programs, loading, refreshing, error, refresh, reload } = useProgramsList();
   const activeProgramId = useAppStore((state) => state.activeProgramId);
 
-  const hasReturned = useRef(false);
-  useEffect(() => {
-    if (!isFocused) return;
-    if (!hasReturned.current) {
-      hasReturned.current = true;
-      return;
-    }
-    reload();
-  }, [isFocused, reload]);
+  useReloadOnFocus(reload);
 
   const openActions = (program: ProgramListItem) => {
     Alert.alert(program.name, undefined, [

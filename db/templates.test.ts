@@ -98,33 +98,31 @@ describe('templates CRUD', () => {
       expect(deleted).toBeNull();
     });
 
-    it('round-trips description and workoutType', async () => {
+    it('round-trips description', async () => {
       const id = await templates.createWorkoutTemplate(
         db,
         programId,
         'Push Day',
         0,
-        'Chest and triceps focus',
-        'Push'
+        'Chest and triceps focus'
       );
       const wt = await templates.getWorkoutTemplateById(db, id);
       expect(wt).toMatchObject({
         description: 'Chest and triceps focus',
-        workoutType: 'Push',
       });
     });
 
-    it('defaults description and workoutType to null when omitted', async () => {
+    it('defaults description to null when omitted', async () => {
       const id = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
       const wt = await templates.getWorkoutTemplateById(db, id);
-      expect(wt).toMatchObject({ description: null, workoutType: null });
+      expect(wt).toMatchObject({ description: null });
     });
 
-    it('updates description and workoutType', async () => {
+    it('updates description', async () => {
       const id = await templates.createWorkoutTemplate(db, programId, 'Push Day', 0);
-      await templates.updateWorkoutTemplate(db, id, 'Push Day', 0, 'Updated focus', 'Upper');
+      await templates.updateWorkoutTemplate(db, id, 'Push Day', 0, 'Updated focus');
       const wt = await templates.getWorkoutTemplateById(db, id);
-      expect(wt).toMatchObject({ description: 'Updated focus', workoutType: 'Upper' });
+      expect(wt).toMatchObject({ description: 'Updated focus' });
     });
 
     it('reorders workout templates', async () => {

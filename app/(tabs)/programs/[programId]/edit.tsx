@@ -91,7 +91,7 @@ export default function EditProgramScreen() {
     setSubmitting(true);
     try {
       await editProgram(id, trimmedName, trimmedDescription || undefined);
-      router.replace(`/programs/${id}`);
+      router.back();
     } finally {
       setSubmitting(false);
     }

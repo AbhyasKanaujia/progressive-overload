@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,26 +11,62 @@ import {
   View,
 } from 'react-native';
 
-import { Button } from '../../../../components/Button';
-import { colors, radius, spacing, typography } from '../../../../constants/theme';
-import { useProgram } from '../../../../hooks/useProgram';
+import { Button } from '../../../../../components/Button';
+import { colors, radius, spacing, typography } from '../../../../../constants/theme';
+import { getDatabase } from '../../../../../db/init';
+import { getWorkoutTemplateById } from '../../../../../db/templates';
+import { useProgram } from '../../../../../hooks/useProgram';
+import { WorkoutTemplate } from '../../../../../types';
 
 const NAME_MAX = 60;
 const DESCRIPTION_MAX = 200;
 
-export default function AddWorkoutScreen() {
+export default function EditWorkoutScreen() {
   const router = useRouter();
-  const { programId } = useLocalSearchParams<{ programId: string }>();
-  const id = Number(programId);
-  const { addWorkout } = useProgram(id);
+  const { programId, workoutId } = useLocalSearchParams<{
+    programId: string;
+    workoutId: string;
+  }>();
+  const programIdNum = Number(programId);
+  const id = Number(workoutId);
+  const { editWorkout } = useProgram(programIdNum);
 
+  const [loading, setLoading] = useState(true);
+  const [workout, setWorkout] = useState<WorkoutTemplate | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleCreate = async () => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (Number.isNaN(id)) {
+        console.warn(`EditWorkout: invalid workoutId: ${workoutId}`);
+        if (!cancelled) setLoading(false);
+        return;
+      }
+      const db = await getDatabase();
+      const w = await getWorkoutTemplateById(db, id);
+      if (!cancelled) {
+        if (w) {
+          setWorkout(w);
+          setName(w.name);
+          setDescription(w.description ?? '');
+        } else {
+          console.warn(`EditWorkout: workout not found for id: ${id}, raw: ${workoutId}`);
+        }
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, workoutId]);
+
+  const handleSave = async () => {
+    if (!workout) return;
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
 
@@ -57,12 +94,31 @@ export default function AddWorkoutScreen() {
 
     setSubmitting(true);
     try {
-      const workoutId = await addWorkout(trimmedName, trimmedDescription || undefined);
-      router.replace(`/programs/${id}/${workoutId}`);
+      await editWorkout(id, trimmedName, workout.orderIndex, trimmedDescription || undefined);
+      router.back();
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!workout) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>Workout not found.</Text>
+        <View style={styles.cta}>
+          <Button variant="primary" label="Go Back" onPress={() => router.back()} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -70,7 +126,7 @@ export default function AddWorkoutScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Add Workout</Text>
+        <Text style={styles.title}>Edit Workout</Text>
 
         <View style={styles.field}>
           <Text style={styles.label}>Workout name</Text>
@@ -101,9 +157,14 @@ export default function AddWorkoutScreen() {
         <View style={styles.actions}>
           <Button
             variant="primary"
-            label="Create Workout"
-            onPress={handleCreate}
+            label="Save Changes"
+            onPress={handleSave}
             loading={submitting}
+          />
+          <Button
+            variant="secondary"
+            label="Delete Workout"
+            onPress={() => router.push(`/programs/${programIdNum}/${id}/delete`)}
           />
           <Button variant="tertiary" label="Cancel" onPress={() => router.back()} />
         </View>
@@ -115,6 +176,12 @@ export default function AddWorkoutScreen() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxl,
   },
   container: {
     padding: spacing.xl,
@@ -161,5 +228,8 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+  },
+  cta: {
+    marginTop: spacing.lg,
   },
 });

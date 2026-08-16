@@ -85,4 +85,98 @@ describe('useProgram', () => {
     expect(result.current.program).toBeNull();
     expect(result.current.error).toBeNull();
   });
+
+  it('adds a workout appended to the end of the order', async () => {
+    const db = await getDatabase();
+    const programId = await templates.createProgram(db, 'Full Body');
+    await templates.createWorkoutTemplate(db, programId, 'A', 0);
+
+    const { result } = await renderHook(() => useProgram(programId));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let newId: number = -1;
+    await act(async () => {
+      newId = await result.current.addWorkout('Push Day', 'Chest and triceps');
+    });
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    expect(result.current.workouts).toHaveLength(2);
+    expect(result.current.workouts[1]).toMatchObject({
+      id: newId,
+      name: 'Push Day',
+      description: 'Chest and triceps',
+      orderIndex: 1,
+    });
+  });
+
+  it('appends using the live DB count, not stale in-memory workouts state', async () => {
+    // The add-workout screen mounts a fresh useProgram(id) and lets the user
+    // submit immediately -- it does not wait for the initial load to finish.
+    // addWorkout must therefore read the current count from the DB rather
+    // than the hook's in-memory `workouts` state, which can still be [] at
+    // that point. Simulate that by adding a workout directly through the db
+    // layer (bypassing the hook's state) between mount and the addWorkout
+    // call, then confirming addWorkout still accounts for it correctly.
+    const db = await getDatabase();
+    const programId = await templates.createProgram(db, 'Full Body');
+    await templates.createWorkoutTemplate(db, programId, 'A', 0);
+
+    const { result } = await renderHook(() => useProgram(programId));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.workouts).toHaveLength(1);
+
+    // A workout created out-of-band (e.g. by a concurrent screen) that this
+    // hook instance's `workouts` state does not know about.
+    await templates.createWorkoutTemplate(db, programId, 'B', 1);
+
+    let newId: number = -1;
+    await act(async () => {
+      newId = await result.current.addWorkout('Push Day');
+    });
+
+    const created = await templates.getWorkoutTemplateById(db, newId);
+    expect(created?.orderIndex).toBe(2);
+  });
+
+  it('edits a workout in place', async () => {
+    const db = await getDatabase();
+    const programId = await templates.createProgram(db, 'Full Body');
+    const workoutId = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+
+    const { result } = await renderHook(() => useProgram(programId));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.editWorkout(workoutId, 'Pull Day', 0, 'Back and biceps');
+    });
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    expect(result.current.workouts[0]).toMatchObject({
+      id: workoutId,
+      name: 'Pull Day',
+      description: 'Back and biceps',
+    });
+  });
+
+  it('removes a workout', async () => {
+    const db = await getDatabase();
+    const programId = await templates.createProgram(db, 'Full Body');
+    const workoutId = await templates.createWorkoutTemplate(db, programId, 'A', 0);
+
+    const { result } = await renderHook(() => useProgram(programId));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.removeWorkout(workoutId);
+    });
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    expect(result.current.workouts).toEqual([]);
+  });
 });

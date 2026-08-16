@@ -10,6 +10,7 @@ import { EmptyState } from '../../../../components/EmptyState';
 import { ListRow } from '../../../../components/ListRow';
 import { colors, spacing, typography } from '../../../../constants/theme';
 import { WorkoutListItem, useProgram } from '../../../../hooks/useProgram';
+import { useReloadOnFocus } from '../../../../hooks/useReloadOnFocus';
 import { useAppStore } from '../../../../store';
 
 export default function ProgramDetailScreen() {
@@ -19,6 +20,8 @@ export default function ProgramDetailScreen() {
   const id = Number(programId);
   const { program, workouts, loading, error, reload } = useProgram(id);
   const activeProgramId = useAppStore((state) => state.activeProgramId);
+
+  useReloadOnFocus(reload);
 
   if (loading) {
     return (
