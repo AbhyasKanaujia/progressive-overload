@@ -55,9 +55,14 @@ export default function ProgramDetailScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Breadcrumb
-          items={[{ label: 'Programs', onPress: () => router.back() }, { label: program.name }]}
-        />
+        <View style={styles.breadcrumbWrapper}>
+          <Breadcrumb
+            items={[
+              { label: 'Programs', onPress: () => router.dismissTo('/programs') },
+              { label: program.name },
+            ]}
+          />
+        </View>
         <View style={styles.headerActions}>
           <Button
             variant="icon"
@@ -172,10 +177,13 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingTop: spacing.lg,
     gap: spacing.md,
+  },
+  breadcrumbWrapper: {
+    flex: 1,
   },
   headerActions: {
     flexDirection: 'row',
